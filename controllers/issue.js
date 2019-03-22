@@ -73,11 +73,14 @@ async function handleCreate(ctx) {
 	})
 	console.log(ordererDB.get(id))
 
-	var data = {
-		business_id: id,
-		payment_address: acc.address,
-		payment_token: ctx.request.body.param.target_chain,
-		payment_amount: fee,
+	var repsonse = {
+		code : 0,
+		data : {
+			business_id: id,
+			payment_address: acc.address,
+			payment_token: ctx.request.body.param.target_chain,
+			payment_amount: fee,
+		}
 	}
 	var ret = responseCreater("0.0.1", "TOKEN_ISSUE", ctx.request.body.action, ctx.request.body.id, data);
 
