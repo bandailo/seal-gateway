@@ -5,12 +5,12 @@ var TronWeb = require('../model/tronAdapter.js');
 var OntSdk = require('../model/ontAdapter.js');
 var Response = require('./response.js');
 
-const web3Api = "https://ropsten.infura.io/v3/f1bd467f49704dfe819279cca31d4ac7";
-const ethPrivateKey = "0x1F9167AD9D4B9B42D7127F4693F9DA225666BD1B7F126A5FF2FE766F4416BE91";
+const web3Api = "https://ropsten.infura.io/v3/xxx";
+const ethPrivateKey = "0xxxx";
 const tronApi = "https://api.shasta.trongrid.io";
-const tronPrivateKey = "0608A04BD9174FC06661F436926EAD91671B6A0AE82F8C754406247268320961";
+const tronPrivateKey = "xxx";
 const ontApi = "http://polaris1.ont.io:20334";
-const ontPrivateKey = "8c9e8b1d601c601effba6f697f4e0ff573c10ad7226c7df18106cc378b75ecac";
+const ontPrivateKey = "xxx";
 
 
 var web3js = new Web3js(web3Api, ethPrivateKey);
