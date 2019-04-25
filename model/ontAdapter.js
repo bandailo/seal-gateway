@@ -7,6 +7,7 @@
 var fs = require('fs');
 var buildin = require('./ontBuildin.js');
 const Ont = require('ontology-ts-sdk');
+var sleep = require('sleep');
 
 class OntAdapter {
 	constructor(api, privateKey) {
@@ -49,6 +50,8 @@ class OntAdapter {
 		Ont.TransactionBuilder.signTransaction(tx, this.privateKey);
 		await this.restClient.sendRawTransaction(tx.serialize())
 	
+		sleep.sleep(5);
+
 		const contract = Ont.Crypto.Address.fromVmCode(code);
 		const codeHash = contract.toHexString();
 		console.log("codehash:", codeHash)	
