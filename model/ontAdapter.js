@@ -45,16 +45,23 @@ class OntAdapter {
 
 	async deployTokenContract(_issuer, _name, _symbol, _totalSupplyCap, _decimal, callback) {
 		var code = this.scTemplate.GetTokenBytecode(_name, _symbol, _decimal, _issuer,_totalSupplyCap);
-		var tx = Ont.TransactionBuilder.makeDeployCodeTransaction(code, 'name', '1.0', 'alice', 'testmail', 'desc', true, '500', '30000000');
+		var tx = Ont.TransactionBuilder.makeDeployCodeTransaction(code, 'name', '1.0', 'seal', 'mail', 'desc', true, '500', '30000000');
 		tx.payer = this.address;
 		Ont.TransactionBuilder.signTransaction(tx, this.privateKey);
-		await this.restClient.sendRawTransaction(tx.serialize())
-	
-		sleep.sleep(5);
+		var ret = await this.restClient.sendRawTransaction(tx.serialize())
+		//sleep.sleep(5);
 
+		
 		const contract = Ont.Crypto.Address.fromVmCode(code);
 		const codeHash = contract.toHexString();
 		console.log("codehash:", codeHash)	
+		for (;;) {
+			var ret = await this.restClient.getContract(codeHash)
+			if (ret.Error == 0) {
+				break;
+			}
+		}
+		
 		const contractAddr = new Ont.Crypto.Address(Ont.utils.reverseHex(codeHash));
 		const oep4 = new Ont.Oep4.Oep4TxBuilder(contractAddr);
 		const gasPrice = '500';
