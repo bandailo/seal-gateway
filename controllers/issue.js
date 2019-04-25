@@ -1,236 +1,205 @@
 var fs= require('fs');
 var uuidv1 = require('uuid/v1');
-var Web3js = require('../model/web3js.js');
-var dbHelper = require('../model/dbHelper.js');
+var Web3js = require('../model/web3Adapter.js');
+var TronWeb = require('../model/tronAdapter.js');
+var OntSdk = require('../model/ontAdapter.js');
+var Response = require('./response.js');
 
-var web3js = new Web3js();
-var ordererDB = new dbHelper();
-
-const successResponse = {
-	code: 0,
-	data: {
-		message : "success"
-	}
-}
-
-const invalidRequest= {
-	code: -32600,
-	data: {
-		message: "invalid request"
-	}
-}
-const invalidUUID = {
-	code: -32601,
-	data: {
-		message: "invalid uuid"
-	}
-}
-
-const invalidOrderStatus= {
-	code: -32602,
-	data: {
-		message: "invalid order status"
-	}
-}
-const invalidFee= {
-	code: -32603,
-	data: {
-		message: "fee to low"
-	}
-}
-function responseCreater(_version, _namespace, _action, _id, _response){
-	var ret = {
-		version: _version, 
-		namespace: _namespace,
-		action: _action,
-		id: _id,
-		response: _response
-	}
-
-	return ret;
-}
+const web3Api = "https://ropsten.infura.io/v3/f1bd467f49704dfe819279cca31d4ac7";
+const ethPrivateKey = "0x1F9167AD9D4B9B42D7127F4693F9DA225666BD1B7F126A5FF2FE766F4416BE91";
+const tronApi = "https://api.shasta.trongrid.io";
+const tronPrivateKey = "0608A04BD9174FC06661F436926EAD91671B6A0AE82F8C754406247268320961";
+const ontApi = "http://polaris1.ont.io:20334";
+const ontPrivateKey = "8c9e8b1d601c601effba6f697f4e0ff573c10ad7226c7df18106cc378b75ecac";
 
 
-async function handleCreate(ctx) {
-	console.log("------handleCreate");
-	var args = ctx.request.body.param;
-	var fee = await web3js.getEthFee(args.basic.owner, args.basic.name, args.basic.symbol, args.basic.caps, args.basic.decimal);
-	var id = uuidv1();
-	var acc = web3js.createAccount();
-	ordererDB.insert(id , {
-		"owner": args.basic.owner,
-		"payment_address":acc.address,
-		"name": args.basic.name,
-		"symbol": args.basic.symbol,
-		"caps": args.basic.caps,
-		"decimal": args.basic.decimal,
-		"fee": fee,
-		"status": "payment",
-		"txhash":"",
-		"contract_address":"",
-		"income":"",
-		"privatekey":acc.privateKey,
-	})
-	console.log(ordererDB.get(id))
+var web3js = new Web3js(web3Api, ethPrivateKey);
+var tronWeb = new TronWeb(tronApi, tronPrivateKey);
+var ontSdk = new OntSdk(ontApi,ontPrivateKey);
 
-	var repsonse = {
-		code : 0,
-		data : {
-			business_id: id,
-			payment_address: acc.address,
-			payment_token: ctx.request.body.param.target_chain,
-			payment_amount: fee,
-		}
-	}
-	var ret = responseCreater("0.0.1", "TOKEN_ISSUE", ctx.request.body.action, ctx.request.body.id, data);
-
-	return ret;
-}
-
-function handlePaid(ctx) {
-	var uuid = ctx.request.body.param.business_id;
-	var res = successResponse;
-	console.log("uuid:", uuid);
-	if (ordererDB.size() ==0 || !ordererDB.find(uuid)) {
-		res = invalidUUID;
-	} else {
-		var o = ordererDB.get(uuid)	
-		if (o.status != "payment") {
-			res = invalidOrderStatus;
-		} else {
-			o.status = "pre_deploying";
-			ordererDB.update(uuid, o);
-			var interval = setInterval(async ()=>{
-				console.log("--> deploying");
-				if (o.status === "deploying" ){
-					return
-				}
-
-				var ba = await web3js.getBalance(o.payment_address)
-console.log(">>>>>>>>>>>>>", ba);
-				if (ba > 0) {
-					clearInterval(interval);
-					o.income = web3js.fromWeiToEther(ba)
-					if (ba >= web3js.fromEtherToWei(o.fee)) {
-						web3js.deployEthContract(uuid,o.owner, o.name, o.symbol, o.caps, o.decimal, (txHash,contractAddr)=>{
-							console.log("=================");
-							var o = ordererDB.get(uuid);
-							o.txhash=txHash;
-							o.contract_address=contractAddr;
-							o.status= "deployed"
-							ordererDB.update(uuid, o)
-						})
-						var status = "deploying"
-					} else {
-						console.log("-----fee too low")
-						var status = "failed"
-					}
-					o.status = status;
-					ordererDB.update(uuid, o)
-				}
-			}, 10000);
-
-			setTimeout(()=>{
-				clearInterval(interval);
-			},1800000);
-		}
-	}
-
-	var ret = responseCreater("0.0.1", "TOKEN_ISSUE", ctx.request.body.action, ctx.request.body.id, res);
-
-	return ret
-}
-
-function handleQuery(ctx) {
-	var uuid = ctx.request.body.param.business_id
-	var codes= web3js.getABI();
-
-	if (ordererDB.size() ==0 || ! ordererDB.find(uuid)) {
-		var res = invalidUUID;	
-	} else {
-		var o = ordererDB.get(uuid)
-		switch (o.status) {
-		case 'payment':
-			var res = {
-				code: 0,
-				data: {
-					"status": o.status,
-					"business_data": {
-						business_id: uuid,
-						chain: "ETH",
-						payment_token:"ETH",
-						payment_amount: o.fee
-					}
-				}
-			}
-			break;
-		case 'pre_deploying':
-		case 'deploying':
-			var res = {
-					code: 0,
-					data: {
-						status: 'deploying',
-						deploying_data: {
-							business_id: uuid,
-							chain: "ETH",
-							owner: o.owner,
-							payment_token:"ETH",
-							payment_amount: o.fee
-						}
-					}
-			}
-			break;
-		case 'deployed':
-			var res = {
-					code: 0,
-					data: {
-						status: o.status,
-						contract_data: {
-							business_id: uuid,
-							chain: "ETH",
-							deploy_transaction: o.txhash,
-							contract_address: o.contract_address,
-							abi: codes,
-							owner: o.owner,
-							payment_token:"ETH",
-							payment_amount: o.income
-						}
-					}
-				}
-			
-			break;
-		default:
-			var res = invalidFee;	
-		}
+var fn_genAddresses= async (ctx, next) => {
+	console.log(ctx.request.body);
+	let version = ctx.request.body.version;
+	let namespace = ctx.request.body.namespace;
+	let action = ctx.request.body.action;
+	let id= ctx.request.body.id;
+	let count = ctx.request.body.param.count;
+	let chain = ctx.request.body.param.target_chain;
+	let code = 0;
+	ctx.response.type = 'application/json';
 	
+	switch (chain) {
+	case "Ethereum":
+		let res = new Response(version, namespace, action, id, code);
+		for (var i=0; i < count; i++) {
+			let account = web3js.generateAddress();
+			res.addAccount('Ethereum', account);
+		}
+		var ret = res.generateAddressResponse('', '', code);
+		break;
+	case "Tron":
+		let resTrx = new Response(version, namespace, action, id, code);
+		for (var i=0; i < count; i++) {
+			let account = await tronWeb.generateAddress();
+			resTrx.addAccount('Tron', account);
+		}
+		var ret = resTrx.generateAddressResponse('', '', code);
+		break;
+	case "Ontology":
+		let resOnt = new Response(version, namespace, action, id, code);
+		for (var i=0; i < count; i++) {
+			let account = await ontSdk.generateAddress();
+			resOnt.addAccount('Ontology', account);
+		}
+		var ret = resOnt.generateAddressResponse('', '', code);
+		break;
 	}
-
-	var ret = responseCreater("0.0.1", "TOKEN_ISSUE", ctx.request.body.action, ctx.request.body.id, res);
-	return ret;
-}
-
+	ctx.response.body = ret;
+}	
 
 var fn_issue = async (ctx, next) => {
 	console.log(ctx.request.body);
 	ctx.response.type = 'application/json';
-	switch(ctx.request.body.action) {
-	case "CREATE":
-		var ret = await handleCreate(ctx);
+
+	let version = ctx.request.body.version;
+	let namespace = ctx.request.body.namespace;
+	let action = ctx.request.body.action;
+	let id= ctx.request.body.id;
+	let code = 0;
+	let res = new Response(version, namespace, action, id, code);
+
+	let owner= ctx.request.body.param.owner;
+	let type = ctx.request.body.param.contract_type;
+	let args = ctx.request.body.param.input;
+	let chain = ctx.request.body.param.target_chain;
+
+	switch (type) {
+	case "TOKEN_ISSUE":
+		switch (chain) {
+		case "Ethereum":
+			let abi = web3js.getTokenAbi();
+			let txhash = await web3js.deployTokenContract(owner, args.basic.name, args.basic.symbol, args.basic.caps, args.basic.decimal);
+			var ret = res.deployBuiltInContractResponse(type, code, abi, txhash);
+			break;
+		case "Tron":
+			let abiTrx = tronWeb.getTokenAbi();
+			let txhashTrx = await tronWeb.deployTokenContract(owner, args.basic.name, args.basic.symbol, args.basic.caps, args.basic.decimal);
+			var ret = res.deployBuiltInContractResponse(type, code, abiTrx, txhashTrx);
+			break;
+		case "Ontology":
+			let abiOnt = ontSdk.getTokenAbi();
+			let txhashOnt = await ontSdk.deployTokenContract(owner, args.basic.name, args.basic.symbol, args.basic.caps, args.basic.decimal);
+			var ret = res.deployBuiltInContractResponse(type, code, abiOnt, txhashOnt);
+			break;
+		}
 		break;
-	case "PAID":
-		var ret = await handlePaid(ctx);
+	case "AIRDROP":
+		switch (chain) {
+		case "Ethereum":
+			let airdropAbi = web3js.getAirdropAbi();
+			let hash = await web3js.deployAirdropContract(args.basic.token_address,owner);
+			var ret = res.deployBuiltInContractResponse(type, code, airdropAbi, hash);
+			break;
+		case "Tron":
+			let airdropAbiTron = tronWeb.getAirdropAbi();
+			let hashTron = await tronWeb.deployAirdropContract(args.basic.token_address,owner);
+			var ret = res.deployBuiltInContractResponse(type, code, airdropAbiTron, hashTron);
+		}
 		break;
-	case "QUERY_STATUS":
-		var ret = await handleQuery(ctx);
+	case "TOKEN_LOCK":
+		switch (chain) {
+		case "Ethereum":
+			let locktimeAbi = web3js.getLocktimeAbi();
+			let locktimeHash = await web3js.deployLocktimeContract(args.basic.withdraw_address,args.basic.locktime, args.basic.token_address);
+			var ret = res.deployBuiltInContractResponse(type, code, locktimeAbi, locktimeHash);
+			break;
+		case "Tron":
+			let locktimeAbiTron = tronWeb.getLocktimeAbi();
+			let locktimeHashTron = await tronWeb.deployLocktimeContract(args.basic.withdraw_address,args.basic.locktime, args.basic.token_address);
+			var ret = res.deployBuiltInContractResponse(type, code, locktimeAbiTron, locktimeHashTron);
+			break;
+		}
 		break;
 	default:
-		var ret = responseCreater("0.0.1", "TOKEN_ISSUE", ctx.request.body.action, ctx.request.body.id, invalidRequest);
+		var ret = res.error(-32600, "invalid request")
 	}
 
-	console.log(ret);
-	ctx.response.body = JSON.stringify(ret);
+	ctx.response.body = ret;
+}
+
+var fn_getScAddr= async (ctx, next) => {
+	console.log(ctx.request.body);
+	ctx.response.type = 'application/json';
+
+	let version = ctx.request.body.version;
+	let namespace = ctx.request.body.namespace;
+	let action = ctx.request.body.action;
+	let id= ctx.request.body.id;
+	let count = ctx.request.body.param.count;
+	let code = 0;
+	let chain = ctx.request.body.param.target_chain;
+
+	switch (chain) {
+	case "Ethereum":
+		let res = new Response(version, namespace, action, id, code);
+		let addr = await web3js.getContractAddress(ctx.request.body.param.transaction);
+		var ret = res.getContractAddressResponse(code, addr);
+		break;
+	case "Tron":
+		let resTrx = new Response(version, namespace, action, id, code);
+		let addrTrx = await tronWeb.getContractAddress(ctx.request.body.param.transaction);
+		var ret = resTrx.getContractAddressResponse(code, addrTrx);
+		break;
+	case "Ontology":
+		let resOnt = new Response(version, namespace, action, id, code);
+		let addrOnt = await ontSdk.getContractAddress(ctx.request.body.param.transaction);
+		var ret = resOnt.getContractAddressResponse(code, addrOnt);
+		break;
+	}
+
+	ctx.response.body = ret;
+}
+
+var fn_queryBalance= async (ctx, next) => {
+	console.log(ctx.request.body);
+	ctx.response.type = 'application/json';
+
+	let version = ctx.request.body.version;
+	let namespace = ctx.request.body.namespace;
+	let action = ctx.request.body.action;
+	let id= ctx.request.body.id;
+	let count = ctx.request.body.param.count;
+	let chain = ctx.request.body.param.target_chain;
+	let code = 0;
+
+	switch (chain) {
+	case "Ethereum":
+		let res = new Response(version, namespace, action, id, code);
+		let amount = await web3js.queryBalance(ctx.request.body.param.address);
+		var ret = res.queryBalanceResponse(code, ctx.request.body.param.asset_id, amount);
+		break;
+	case "Tron":
+		let resTrx = new Response(version, namespace, action, id, code);
+		console.log(resTrx)
+		let amountTrx = await tronWeb.queryBalance(ctx.request.body.param.address);
+		console.log(amountTrx)
+		var ret = resTrx.queryBalanceResponse(code, ctx.request.body.param.asset_id, amountTrx);
+		break;
+	case "Ontology":
+		let resOnt = new Response(version, namespace, action, id, code);
+		console.log(resOnt)
+		let amountOnt = await ontSdk.queryBalance(ctx.request.body.param.address);
+		console.log(amountOnt)
+		var ret = resOnt.queryBalanceResponse(code, ctx.request.body.param.asset_id, amountOnt);
+		break;
+	}
+
+	ctx.response.body = ret;
 }
 
 module.exports = {
-	'POST /token_issue': fn_issue
+	'POST /generateAddresses': fn_genAddresses,
+	'POST /queryBalance': fn_queryBalance,
+	'POST /tokenIssue/deployBuiltInContract': fn_issue,
+	'POST /tokenIssue/getContractAddress': fn_getScAddr
 };
