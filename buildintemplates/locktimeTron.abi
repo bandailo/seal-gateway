@@ -1,0 +1,110 @@
+[
+{
+    "constant": true,
+        "inputs": [],
+        "name": "withdrawAddress",
+        "outputs": [
+        {
+            "name": "",
+            "type": "address"
+        }
+        ],
+        "payable": false,
+        "stateMutability": "view",
+        "type": "function"
+},
+{
+    "constant": true,
+    "inputs": [],
+    "name": "unlockTime",
+    "outputs": [
+    {
+        "name": "",
+        "type": "uint256"
+    }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+},
+{
+    "constant": true,
+    "inputs": [],
+    "name": "tokenAddress",
+    "outputs": [
+    {
+        "name": "",
+        "type": "address"
+    }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+},
+{
+    "constant": true,
+    "inputs": [],
+    "name": "token",
+    "outputs": [
+    {
+        "name": "",
+        "type": "address"
+    }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+},
+{
+    "inputs": [
+    {
+        "name": "_withdrawAddress",
+        "type": "address"
+    },
+    {
+        "name": "_lockTime",
+        "type": "uint256"
+    },
+    {
+        "name": "_tokenAddress",
+        "type": "address"
+    }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+},
+{
+    "constant": false,
+    "inputs": [
+    {
+        "name": "_value",
+        "type": "uint256"
+    }
+    ],
+    "name": "withdraw",
+    "outputs": [
+    {
+        "name": "success",
+        "type": "bool"
+    }
+    ],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+},
+{
+    "constant": true,
+    "inputs": [],
+    "name": "balanceOf",
+    "outputs": [
+    {
+        "name": "value",
+        "type": "uint256"
+    }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+}
+]
