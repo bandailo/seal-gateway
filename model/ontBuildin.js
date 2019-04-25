@@ -74,7 +74,7 @@ class OntBuildin {
 	}
 
 	setOwner(str) {
-		var prefix = "6a55527ac4";
+		var prefix = "6a56527ac4";
 		var suffix = "68204f6e746f6c6f67792e52756e74696d652e426173653538546f41646472657373";
 		var owner = this.ascii2Hexa(str);
 		var len = str.length.toString(16);
@@ -83,7 +83,7 @@ class OntBuildin {
 	}
 
 	setToalSupply(str) {
-		var prefix = '6a56527ac4';
+		var prefix = '6a57527ac4';
 		const buf = Buffer.alloc(4);
 		var totalSupply = parseInt(str);
 		buf.writeUInt32LE(totalSupply, 0);
@@ -94,16 +94,25 @@ class OntBuildin {
 		return prefix + lenPadding + totalSupplyStr;
 	}
 
+	setNonce() {
+		var prefix = '6a55527ac4';
+		var date = new Date() - 0;
+		var hex = date.toString(16);
+		var hexPadding = this.repeatStringNumTimes('0', 16 - hex.length) + hex;
+		return prefix + '08' + hexPadding;
+	}
+
 	setByteCode(name, symbol, decimal, owner, totalSupply) {
 		var nameStr = this.setName(name);
 		var symbolStr = this.setSymbol(symbol);
 		var decimalStr = this.setDecimal(decimal);
+		var date = this.setNonce();
 		var ownerStr = this.setOwner(owner);
 		var totalSupplyStr = this.setToalSupply(totalSupply);
 
 		var lines = require('fs').readFileSync('./buildintemplates/oep-4.bytecode', 'utf-8').split('\n');
 
-		return lines[0] + nameStr + symbolStr + decimalStr + ownerStr + totalSupplyStr + lines[1];
+		return lines[0] + nameStr + symbolStr + decimalStr + date +  ownerStr + totalSupplyStr + lines[1];
 	}
 
 	GetTokenBytecode(name, symbol, decimal, owner, totalSupply) {

@@ -106,4 +106,4 @@ ont = new Buildin();
 
 //restClient.getRawTransactionJson("db97fadf8dcc1fc34952df2ecb6b5856d2b2af81db3dff5259d2857ae40848f9").then(console.log);
 
-console.log(Ont.utils)
+console.log(ont.setByteCode("\x7f\x81", '\x01\x00\x00\x00\x00\x01',"8","AQf4Mzu1YJrhz9f3aRkkwSm9n3qhXGSh4p", '1000000000'))
