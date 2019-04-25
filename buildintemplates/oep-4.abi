@@ -1,0 +1,116 @@
+{
+  "contractHash": null,
+  "abi": {
+    "CompilerVersion": "2.0.0",
+    "hash": "9dfd2efedcdadbcd84c94e917ea3d3c729020982",
+    "entrypoint": "Main",
+    "functions": [
+      {
+        "name": "init",
+        "parameters": []
+      },
+      {
+        "name": "name",
+        "parameters": []
+      },
+      {
+        "name": "symbol",
+        "parameters": []
+      },
+      {
+        "name": "decimals",
+        "parameters": []
+      },
+      {
+        "name": "totalSupply",
+        "parameters": []
+      },
+      {
+        "name": "balanceOf",
+        "parameters": [
+          {
+            "name": "account",
+            "type": ""
+          }
+        ]
+      },
+      {
+        "name": "transfer",
+        "parameters": [
+          {
+            "name": "from_acct",
+            "type": ""
+          },
+          {
+            "name": "to_acct",
+            "type": ""
+          },
+          {
+            "name": "amount",
+            "type": ""
+          }
+        ]
+      },
+      {
+        "name": "transferMulti",
+        "parameters": [
+          {
+            "name": "args",
+            "type": ""
+          }
+        ]
+      },
+      {
+        "name": "approve",
+        "parameters": [
+          {
+            "name": "owner",
+            "type": ""
+          },
+          {
+            "name": "spender",
+            "type": ""
+          },
+          {
+            "name": "amount",
+            "type": ""
+          }
+        ]
+      },
+      {
+        "name": "transferFrom",
+        "parameters": [
+          {
+            "name": "spender",
+            "type": ""
+          },
+          {
+            "name": "from_acct",
+            "type": ""
+          },
+          {
+            "name": "to_acct",
+            "type": ""
+          },
+          {
+            "name": "amount",
+            "type": ""
+          }
+        ]
+      },
+      {
+        "name": "allowance",
+        "parameters": [
+          {
+            "name": "owner",
+            "type": ""
+          },
+          {
+            "name": "spender",
+            "type": ""
+          }
+        ]
+      }
+    ]
+  }
+}
